@@ -7,7 +7,12 @@ import unicodedata
 from difflib import SequenceMatcher
 
 
-UNIDADES = "gb|tb|mb|mah|w|hz|mm|cm|m|kg|g|ml|l|mp|pulg|in"
+UNIDADES = "gb|tb|mb|mah|w|hz|mm|cm|m|kg|kilos?|g|gr|grs|gramos|ml|cc|l|lt|lts|litros?|mp|pulg|pulgadas|in|un|unidades"
+# Formas equivalentes de la misma unidad, llevadas a una sola.
+SINONIMOS_UNIDAD = {
+    "kilo": "kg", "kilos": "kg", "gr": "g", "grs": "g", "gramos": "g", "cc": "ml",
+    "lt": "l", "lts": "l", "litro": "l", "litros": "l", "pulgadas": "pulg", "unidades": "un",
+}
 
 
 def normalizar(texto: str) -> str:
@@ -16,7 +21,8 @@ def normalizar(texto: str) -> str:
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     texto = re.sub(r"[^a-z0-9]+", " ", texto.lower())
     # "128 gb" -> "128gb", "65 w" -> "65w" para que coincidan ambas formas.
-    texto = re.sub(r"\b(\d+) (" + UNIDADES + r")\b", r"\1\2", texto)
+    texto = re.sub(r"\b(\d+) ?(" + UNIDADES + r")\b",
+                   lambda m: m.group(1) + SINONIMOS_UNIDAD.get(m.group(2), m.group(2)), texto)
     return " ".join(texto.split())
 
 

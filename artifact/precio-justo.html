@@ -109,6 +109,16 @@
   .prod .num { font-size: .85rem; }
   .empty { color: var(--muted); font-size: .9rem; }
   details > summary { cursor: pointer; font-weight: 600; font-size: .88rem; color: var(--muted); }
+  .auto-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; flex-wrap: wrap; }
+  .auto-sub { margin: 4px 0 0; color: var(--muted); font-size: .88rem; max-width: 70ch; }
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .chip { display: grid; gap: 2px; padding: 8px 12px; border-radius: 9px; background: var(--surface-2); border-left: 4px solid var(--line); font-size: .85rem; }
+  .chip b { font-weight: 600; }
+  .chip span { color: var(--muted); font-size: .76rem; }
+  .chip.ok { border-left-color: var(--mb); } .chip.parcial { border-left-color: var(--pr); } .chip.error { border-left-color: var(--c); }
+  .chip.pendiente { border-left-style: dashed; }
+  a { color: var(--accent); }
+  .origen { font: 400 .68rem var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-left: 6px; }
   code { font-family: var(--f-mono); font-size: .82rem; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
   @media (prefers-reduced-motion: no-preference) { .result-in { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(4px); opacity: .6; } } }
 </style>
@@ -118,10 +128,19 @@
     <div>
       <div class="eyebrow">Comparador de precios</div>
       <h1>Precio Justo</h1>
-      <p>Escribe la marca, el detalle y el precio de un producto. Se compara con lo que cobra hoy cada distribuidor y con el historial de precios, y te dice si es muy barato, barato, promedio o caro.</p>
+      <p>Escribe la marca, el detalle y el precio de un producto. Se compara con lo que cobran hoy Paris, Falabella, Ripley, Líder, Jumbo y Mercado Libre, y con el historial de precios, y te dice si es muy barato, barato, promedio o caro.</p>
     </div>
     <div id="estado" class="eyebrow">Conectando…</div>
   </header>
+
+  <section id="auto" class="panel auto" aria-labelledby="t-auto">
+    <div class="auto-head">
+      <div><h2 id="t-auto">Precios de internet</h2>
+        <p class="auto-sub">Cada día a las 23:59 (hora de Chile) se buscan todos los productos del catálogo en las tiendas y se guarda el precio del día.</p></div>
+      <div id="auto-ultima" class="eyebrow">Sin actualizaciones todavía</div>
+    </div>
+    <div id="auto-tiendas" class="chips"></div>
+  </section>
 
   <div id="banner-demo" class="banner" hidden>
     <span>Hay productos de <b>ejemplo con precios inventados</b> (Samsung, Apple, LG, Sony, Nike) para que pruebes el sistema.</span>
@@ -208,12 +227,13 @@
 <script>
 "use strict";
 // ───────────────────────── utilidades de texto y números ─────────────────────────
-const UNIDADES = "gb|tb|mb|mah|w|hz|mm|cm|m|kg|g|ml|l|mp|pulg|in";
-const reUnidad = new RegExp("\\b(\\d+) (" + UNIDADES + ")\\b", "g");
+const UNIDADES = "gb|tb|mb|mah|w|hz|mm|cm|m|kg|kilos?|g|gr|grs|gramos|ml|cc|l|lt|lts|litros?|mp|pulg|pulgadas|in|un|unidades";
+const SINONIMOS = { kilo: "kg", kilos: "kg", gr: "g", grs: "g", gramos: "g", cc: "ml", lt: "l", lts: "l", litro: "l", litros: "l", pulgadas: "pulg", unidades: "un" };
+const reUnidad = new RegExp("\\b(\\d+) ?(" + UNIDADES + ")\\b", "g");
 
 function normalizar(t) {
   return String(t).normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ").trim().replace(reUnidad, "$1$2").split(/\s+/).filter(Boolean).join(" ");
+    .replace(/[^a-z0-9]+/g, " ").trim().replace(reUnidad, (_, n, u) => n + (SINONIMOS[u] || u)).split(/\s+/).filter(Boolean).join(" ");
 }
 
 // Equivalente a difflib.SequenceMatcher(None, a, b).ratio() para textos cortos.
@@ -332,7 +352,7 @@ function analizar(marca, detalle, precio) {
   // Distribuidores: último precio de cada uno dentro de la vigencia.
   const limite = restarDias(hoy, AJ.dias), ultimo = new Map();
   for (const x of regs) if (x.f >= limite && x.f <= hoy) ultimo.set(x.d, x);
-  r.distribuidores = [...ultimo.values()].map((x) => ({ nombre: x.d, precio: x.p, fecha: x.f, dif: pct(precio, x.p) })).sort((a, b) => a.precio - b.precio);
+  r.distribuidores = [...ultimo.values()].map((x) => ({ nombre: x.d, precio: x.p, fecha: x.f, dif: pct(precio, x.p), url: x.u || "", titulo: x.t || "", auto: x.o === "auto" })).sort((a, b) => a.precio - b.precio);
   if (r.distribuidores.length) {
     r.promDist = r2(media(r.distribuidores.map((d) => d.precio)));
     r.difDist = pct(precio, r.promDist);
@@ -423,7 +443,7 @@ function renderResultado() {
 
   if (r.distribuidores.length) {
     html += `<div class="tbl"><table><thead><tr><th>Distribuidor</th><th>Fecha</th><th class="r">Precio</th><th class="r">Tu precio vs. este</th></tr></thead><tbody>
-      ${r.distribuidores.map((d) => `<tr><td>${esc(d.nombre)}</td><td class="num">${d.fecha}</td><td class="r num">${dinero(d.precio)}</td><td class="r num ${d.dif > 0 ? "up" : d.dif < 0 ? "down" : ""}">${pctTxt(d.dif)}</td></tr>`).join("")}
+      ${r.distribuidores.map((d) => `<tr><td>${d.url && /^https:\/\//.test(d.url) ? `<a href="${esc(d.url)}" target="_blank" rel="noopener" title="${esc(d.titulo)}">${esc(d.nombre)}</a>` : esc(d.nombre)}${d.auto ? `<span class="origen">web</span>` : ""}</td><td class="num">${d.fecha}</td><td class="r num">${dinero(d.precio)}</td><td class="r num ${d.dif > 0 ? "up" : d.dif < 0 ? "down" : ""}">${pctTxt(d.dif)}</td></tr>`).join("")}
     </tbody></table></div>`;
   }
   if (h && h.serie.length > 1) html += grafico(h.serie, precio);
@@ -491,6 +511,28 @@ function renderDetalle() {
     ${regs.map((x) => `<tr><td class="num">${x.f}</td><td>${esc(x.d)}</td><td class="r num">${dinero(x.p)}</td><td class="r">${S.puedeEscribir ? `<button type="button" class="danger mini" data-borrar="${x.i}" aria-label="Borrar precio de ${esc(x.d)} del ${x.f}">Borrar</button>` : ""}</td></tr>`).join("")}
     </tbody></table></div>`;
 }
+
+const TIENDAS = ["Paris", "Falabella", "Ripley", "Líder", "Jumbo", "Mercado Libre"];
+function renderAuto(est) {
+  const t = (est && est.tiendas) || {};
+  if (est && est.fecha) {
+    const [a, m, d] = est.fecha.split("-");
+    $("#auto-ultima").textContent = `Última actualización: ${d}-${m}-${a} · ${est.precios_nuevos || 0} precios nuevos`;
+  }
+  $("#auto-tiendas").innerHTML = TIENDAS.map((n) => {
+    const x = t[n];
+    let clase = "pendiente", txt = "Esperando la primera búsqueda";
+    if (x) {
+      const total = (x.encontrados || 0) + (x.sin_coincidencia || 0) + (x.errores || 0);
+      if (x.encontrados && !x.errores) { clase = "ok"; txt = `${x.encontrados} de ${total} productos encontrados`; }
+      else if (x.encontrados) { clase = "parcial"; txt = `${x.encontrados} de ${total} encontrados · ${x.errores} con error`; }
+      else if (x.errores) { clase = "error"; txt = "La tienda no respondió"; }
+      else { clase = "parcial"; txt = total ? "Ningún producto coincidió" : "Sin productos para buscar"; }
+    }
+    return `<div class="chip ${clase}" title="${esc(x && x.ultimo_error ? x.ultimo_error : "")}"><b>${esc(n)}</b><span>${esc(txt)}</span></div>`;
+  }).join("");
+}
+renderAuto(null);
 
 // ───────────────────────────── escritura en la base ─────────────────────────────
 async function guardarProducto(id, p) {
@@ -685,6 +727,8 @@ iniciar();
     const ok = user && user.can ? await user.can("data.write") : null;
     if (ok === false) { S.puedeEscribir = false; aplicarPermisos(); }
   } catch (_) {}
+
+  db.doc("estado/recoleccion").onSnapshot((d) => renderAuto(d.exists ? d.data() : null), () => {});
 
   let primera = true;
   db.collection("productos").onSnapshot((snap) => {

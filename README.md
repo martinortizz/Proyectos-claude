@@ -19,6 +19,28 @@ La carpeta `artifact/` tiene una versión de la aplicación que funciona en el n
 publicada en claude.ai: https://claude.ai/artifact/3Ws7PteqZbqM3KavUjBCf5 . Guarda los precios en
 una base de datos en la nube y aplica el mismo análisis que la versión en Python.
 
+## Precios diarios de tiendas chilenas
+
+Cada día a las 23:59 (hora de Chile) una rutina de Claude busca todos los productos del
+catálogo en **Paris, Falabella, Ripley, Líder, Jumbo y Mercado Libre** y guarda el precio del día
+en la base de datos de la página. Se registra el precio al público por internet; los precios
+exclusivos con tarjeta de la tienda se ignoran. Los pasos de la rutina están en
+[`RUTINA_DIARIA.md`](RUTINA_DIARIA.md).
+
+- `analizador_precios/tiendas.py`: cómo se consulta cada tienda y cómo se elige la oferta que
+  corresponde al producto. Exige la marca y todos los números del modelo (15, 128GB, 55…), y
+  descarta accesorios ("funda", "cargador"…) y otras variantes ("Pro", "Max", "Plus"…).
+- `analizador_precios/recolector.py`: recorre el catálogo, busca en las seis tiendas y prepara
+  los documentos actualizados más un resumen por tienda que la página muestra.
+
+```bash
+python3 -m analizador_precios.recolector --catalogo exportado/productos --salida actualizados
+```
+
+La rutina necesita que el entorno de Claude Code permita la conexión a estos sitios:
+`www.falabella.com`, `www.paris.cl`, `simple.ripley.cl`, `super.lider.cl`, `www.jumbo.cl`,
+`listado.mercadolibre.cl` y `api.mercadolibre.com`.
+
 ## Uso rápido
 
 ```bash
