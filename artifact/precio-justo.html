@@ -1,0 +1,709 @@
+<title>Precio Justo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #eef1ef; --surface: #ffffff; --surface-2: #f6f8f7; --ink: #16201c; --muted: #5b6a64;
+    --line: #d9dfdc; --accent: #1d5a86; --accent-ink: #ffffff; --focus: #1d5a86;
+    --tag-ink: #ffffff; --mb: #0d7a4e; --b: #4f9435; --pr: #b98300; --c: #bf3d2a; --pr-ink: #1b1400;
+    --shadow: 0 1px 2px rgba(22, 32, 28, .06), 0 4px 16px rgba(22, 32, 28, .05);
+    --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+    --f-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #111715; --surface: #19211e; --surface-2: #141b18; --ink: #e6ece9; --muted: #98a8a1;
+      --line: #2b3632; --accent: #6fb0e0; --accent-ink: #0c1a24; --focus: #8cc3ea;
+      --tag-ink: #0c1512; --mb: #3fcf8e; --b: #8fcf6b; --pr: #f0c14f; --c: #ff7a64; --pr-ink: #1b1400;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111715; --surface: #19211e; --surface-2: #141b18; --ink: #e6ece9; --muted: #98a8a1;
+    --line: #2b3632; --accent: #6fb0e0; --accent-ink: #0c1a24; --focus: #8cc3ea;
+    --tag-ink: #0c1512; --mb: #3fcf8e; --b: #8fcf6b; --pr: #f0c14f; --c: #ff7a64; --pr-ink: #1b1400;
+    --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--f-body); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; gap: 20px; }
+  header { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+  h1 { font: 800 clamp(1.7rem, 4vw, 2.3rem)/1.05 var(--f-display); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+  header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+  h2 { font: 700 1.1rem/1.2 var(--f-display); margin: 0; }
+  .eyebrow { font: 500 .72rem/1 var(--f-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); display: grid; gap: 16px; align-content: start; }
+  .grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  form { display: grid; gap: 12px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 420px) { .row2 { grid-template-columns: 1fr; } }
+  label { display: grid; gap: 5px; font-size: .82rem; font-weight: 600; color: var(--muted); }
+  label small { font-weight: 400; }
+  input, select { font: 400 .95rem var(--f-body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; width: 100%; min-width: 0; }
+  input.precio { font-family: var(--f-mono); font-size: 1.05rem; }
+  input:focus-visible, button:focus-visible, select:focus-visible, summary:focus-visible, .prod:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button { font: 600 .92rem var(--f-body); border-radius: 9px; padding: 10px 16px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+  button.ghost { background: transparent; color: var(--accent); }
+  button.danger { background: transparent; color: var(--c); border-color: var(--c); }
+  button.mini { padding: 3px 9px; font-size: .8rem; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .msg { font-size: .85rem; min-height: 1.2em; }
+  .msg.ok { color: var(--mb); } .msg.err { color: var(--c); }
+  .banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 14px; border: 1px dashed var(--pr); border-radius: 10px; font-size: .88rem; background: var(--surface); }
+  .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+  /* Veredicto con forma de etiqueta de precio */
+  .verdict { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .tag { --tc: var(--accent); position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px 12px 34px; color: var(--tag-ink); background: var(--tc);
+    clip-path: polygon(16px 0, 100% 0, 100% 100%, 16px 100%, 0 50%); border-radius: 0 10px 10px 0; font: 800 1.35rem/1 var(--f-display); letter-spacing: .01em; }
+  .tag::before { content: ""; position: absolute; left: 14px; top: 50%; width: 8px; height: 8px; margin-top: -4px; border-radius: 50%; background: var(--surface); }
+  .tag.MB { --tc: var(--mb); } .tag.B { --tc: var(--b); } .tag.P { --tc: var(--pr); color: var(--pr-ink); } .tag.C { --tc: var(--c); }
+  .verdict-txt { display: grid; gap: 2px; }
+  .verdict-txt b { font: 500 1.25rem var(--f-mono); }
+  .verdict-txt span { color: var(--muted); font-size: .88rem; }
+
+  .scale { display: grid; gap: 6px; }
+  .bar { position: relative; display: flex; height: 12px; border-radius: 6px; overflow: visible; }
+  .bar > i { display: block; height: 100%; }
+  .bar > i:first-child { border-radius: 6px 0 0 6px; } .bar > i:last-of-type { border-radius: 0 6px 6px 0; }
+  .pin { position: absolute; top: -6px; width: 4px; height: 24px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+  .scale-lbl { position: relative; height: 1.2em; font: 400 .72rem var(--f-mono); color: var(--muted); }
+  .scale-lbl span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .scale-lbl span:first-child { transform: none; } .scale-lbl span:last-child { transform: translateX(-100%); }
+  .scale-names { display: flex; font-size: .72rem; color: var(--muted); }
+  .scale-names span { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline: 2px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .stat { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; align-content: start; }
+  .stat small { color: var(--muted); font-size: .76rem; }
+  .stat b { font: 500 1.05rem var(--f-mono); }
+  .up { color: var(--c); } .down { color: var(--mb); }
+  ul.concl { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+  .warn { color: var(--pr); font-size: .88rem; }
+  :root:not([data-theme="dark"]) .warn { color: #8a6300; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warn { color: var(--pr); } }
+
+  .tbl { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font: 500 .72rem var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  td.r, th.r { text-align: right; }
+  svg text { fill: var(--muted); font: 400 10.5px var(--f-mono); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .78rem; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+  .tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--muted); padding: 8px 12px; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .prods { display: grid; gap: 6px; }
+  .prod { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; text-align: left; background: var(--surface-2); color: var(--ink); border: 1px solid transparent; padding: 9px 12px; border-radius: 9px; font-weight: 400; }
+  .prod:hover { border-color: var(--line); }
+  .prod b { font-weight: 600; } .prod span { color: var(--muted); font-size: .8rem; }
+  .prod .num { font-size: .85rem; }
+  .empty { color: var(--muted); font-size: .9rem; }
+  details > summary { cursor: pointer; font-weight: 600; font-size: .88rem; color: var(--muted); }
+  code { font-family: var(--f-mono); font-size: .82rem; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+  @media (prefers-reduced-motion: no-preference) { .result-in { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(4px); opacity: .6; } } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Comparador de precios</div>
+      <h1>Precio Justo</h1>
+      <p>Escribe la marca, el detalle y el precio de un producto. Se compara con lo que cobra hoy cada distribuidor y con el historial de precios, y te dice si es muy barato, barato, promedio o caro.</p>
+    </div>
+    <div id="estado" class="eyebrow">Conectando…</div>
+  </header>
+
+  <div id="banner-demo" class="banner" hidden>
+    <span>Hay productos de <b>ejemplo con precios inventados</b> (Samsung, Apple, LG, Sony, Nike) para que pruebes el sistema.</span>
+    <button id="btn-borrar-demo" class="danger mini" type="button">Borrar ejemplos</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="t-analizar">
+      <h2 id="t-analizar">Analizar un precio</h2>
+      <form id="f-analizar" autocomplete="off">
+        <label>Marca <input id="a-marca" name="marca" required list="dl-marcas" placeholder="Samsung"></label>
+        <label>Detalle del producto <input id="a-detalle" name="detalle" required list="dl-detalles" placeholder="Galaxy S24 128GB Negro"></label>
+        <label>Precio <input id="a-precio" name="precio" class="precio" required inputmode="decimal" placeholder="799.990"></label>
+        <label>Guardar también este precio como distribuidor <small>(opcional)</small>
+          <input id="a-registrar" name="registrar" placeholder="Nombre de la tienda"></label>
+        <button type="submit">Analizar precio</button>
+        <div id="a-msg" class="msg" role="status"></div>
+      </form>
+      <details>
+        <summary>Ajustes del análisis</summary>
+        <form id="f-ajustes" style="margin-top:12px">
+          <div class="row2">
+            <label>Muy barato hasta <input id="u-mb" type="number" step="0.5" value="-15"></label>
+            <label>Barato hasta <input id="u-b" type="number" step="0.5" value="-5"></label>
+          </div>
+          <div class="row2">
+            <label>Caro desde más de <input id="u-c" type="number" step="0.5" value="5"></label>
+            <label>Precio vigente (días) <input id="u-dias" type="number" min="1" value="30"></label>
+          </div>
+          <label>Peso de los distribuidores en la referencia (%) <input id="u-peso" type="number" min="0" max="100" value="60"></label>
+          <div id="u-msg" class="msg"></div>
+        </form>
+      </details>
+    </section>
+
+    <section id="resultado" class="panel" aria-live="polite">
+      <div class="eyebrow">Resultado</div>
+      <p class="empty">Ingresa un producto y su precio para ver el análisis.</p>
+    </section>
+  </div>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="t-cargar">
+      <h2 id="t-cargar">Cargar precios de distribuidores</h2>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-uno" aria-selected="true">Uno por uno</button>
+        <button type="button" role="tab" id="tab-csv" aria-selected="false">Importar CSV</button>
+      </div>
+      <form id="f-precio" autocomplete="off">
+        <label>Marca <input id="p-marca" required list="dl-marcas"></label>
+        <label>Detalle del producto <input id="p-detalle" required list="dl-detalles"></label>
+        <label>Distribuidor <input id="p-dist" required list="dl-dist" placeholder="Tienda, cadena o sitio web"></label>
+        <div class="row2">
+          <label>Precio <input id="p-precio" class="precio" required inputmode="decimal"></label>
+          <label>Fecha <input id="p-fecha" type="date" required></label>
+        </div>
+        <button type="submit">Guardar precio</button>
+        <div id="p-msg" class="msg" role="status"></div>
+      </form>
+      <form id="f-csv" hidden>
+        <p style="margin:0;font-size:.88rem;color:var(--muted)">Archivo con columnas <code>marca,detalle,distribuidor,precio,fecha</code>. La fecha va como AAAA-MM-DD; si falta, se usa hoy.</p>
+        <label>Archivo CSV <input id="c-file" type="file" accept=".csv,text/csv,text/plain"></label>
+        <button type="submit">Importar</button>
+        <div id="c-msg" class="msg" role="status"></div>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="t-catalogo">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <h2 id="t-catalogo">Catálogo</h2>
+        <span id="cat-count" class="eyebrow"></span>
+      </div>
+      <input id="cat-filtro" placeholder="Filtrar por marca o detalle" aria-label="Filtrar catálogo">
+      <div id="cat-lista" class="prods"><p class="empty">Cargando…</p></div>
+      <div id="cat-detalle"></div>
+    </section>
+  </div>
+
+  <datalist id="dl-marcas"></datalist>
+  <datalist id="dl-detalles"></datalist>
+  <datalist id="dl-dist"></datalist>
+</div>
+
+<script>
+"use strict";
+// ───────────────────────── utilidades de texto y números ─────────────────────────
+const UNIDADES = "gb|tb|mb|mah|w|hz|mm|cm|m|kg|g|ml|l|mp|pulg|in";
+const reUnidad = new RegExp("\\b(\\d+) (" + UNIDADES + ")\\b", "g");
+
+function normalizar(t) {
+  return String(t).normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ").trim().replace(reUnidad, "$1$2").split(/\s+/).filter(Boolean).join(" ");
+}
+
+// Equivalente a difflib.SequenceMatcher(None, a, b).ratio() para textos cortos.
+function ratio(a, b) {
+  if (!a.length && !b.length) return 1;
+  function coincidencias(alo, ahi, blo, bhi) {
+    let mejor = 0, bi = 0, bj = 0, prev = new Array(bhi - blo + 1).fill(0);
+    for (let i = alo; i < ahi; i++) {
+      const cur = new Array(bhi - blo + 1).fill(0);
+      for (let j = blo; j < bhi; j++) {
+        if (a[i] === b[j]) {
+          const k = prev[j - blo] + 1; cur[j - blo + 1] = k;
+          if (k > mejor) { mejor = k; bi = i - k + 1; bj = j - k + 1; }
+        }
+      }
+      prev = cur;
+    }
+    if (!mejor) return 0;
+    return mejor + coincidencias(alo, bi, blo, bj) + coincidencias(bi + mejor, ahi, bj + mejor, bhi);
+  }
+  return 2 * coincidencias(0, a.length, 0, b.length) / (a.length + b.length);
+}
+
+function similitud(consulta, candidato) {
+  const a = normalizar(consulta), b = normalizar(candidato);
+  if (!a || !b) return 0;
+  const ta = new Set(a.split(" ")), tb = new Set(b.split(" "));
+  let comunes = 0; ta.forEach((t) => { if (tb.has(t)) comunes++; });
+  return 0.6 * (comunes / ta.size) + 0.4 * ratio(a.replace(/ /g, ""), b.replace(/ /g, ""));
+}
+
+// "$ 1.299,90" · "1,299.90" · "1.299" (miles) · "12,5"
+function leerPrecio(v) {
+  if (typeof v === "number") return v;
+  let t = String(v).replace(/[^\d.,-]/g, "");
+  if (!/\d/.test(t)) throw new Error(`Precio inválido: «${v}»`);
+  if (t.includes(".") && t.includes(",")) {
+    const dec = t.lastIndexOf(".") > t.lastIndexOf(",") ? "." : ",";
+    t = t.split(dec === "." ? "," : ".").join("").replace(dec, ".");
+  } else {
+    const sep = t.includes(".") ? "." : t.includes(",") ? "," : null;
+    if (sep) {
+      const partes = t.split(sep);
+      t = (partes.length > 2 || partes[partes.length - 1].length === 3) ? partes.join("") : partes.join(".");
+    }
+  }
+  const n = Number(t);
+  if (!isFinite(n)) throw new Error(`Precio inválido: «${v}»`);
+  return n;
+}
+
+const fmtNum = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2, minimumFractionDigits: 0, useGrouping: "always" });
+const fmtDec = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: "always" });
+const dinero = (x) => x == null ? "—" : "$" + (Number.isInteger(Math.round(x * 100) / 100) ? fmtNum : fmtDec).format(x);
+const pctTxt = (x, signo = true) => x == null ? "—" : (signo && x > 0 ? "+" : "") + x.toFixed(1).replace(".", ",") + " %";
+const pct = (precio, ref) => Math.round((precio - ref) / ref * 10000) / 100;
+const r2 = (x) => Math.round(x * 100) / 100;
+const media = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
+const mediana = (xs) => { const s = [...xs].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const restarDias = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = (s) => document.querySelector(s);
+const idProducto = (marca, detalle) => normalizar(marca + " " + detalle).replace(/ /g, "-").slice(0, 180);
+
+// ───────────────────────────────── estado ─────────────────────────────────
+const S = {
+  db: null, puedeEscribir: true,
+  productos: new Map(),   // id -> {marca, detalle, demo, precios:[{d,p,f,o}]}
+  ultimo: null,           // último análisis pedido, para recalcular si cambian los datos
+  seleccionado: null,
+};
+
+const AJ_DEF = { mb: -15, b: -5, c: 5, dias: 30, peso: 60 };
+function leerAjustes() {
+  let a = { ...AJ_DEF };
+  try { a = { ...a, ...JSON.parse(localStorage.getItem("pj-ajustes") || "{}") }; } catch (_) {}
+  return a;
+}
+let AJ = leerAjustes();
+
+// ───────────────────────────── motor de análisis ─────────────────────────────
+const CLASES = [
+  { k: "MB", nombre: "Muy barato" }, { k: "B", nombre: "Barato" },
+  { k: "P", nombre: "Precio promedio" }, { k: "C", nombre: "Más caro que el promedio" },
+];
+function clasificar(dif) {
+  if (dif <= AJ.mb) return CLASES[0];
+  if (dif <= AJ.b) return CLASES[1];
+  if (dif <= AJ.c) return CLASES[2];
+  return CLASES[3];
+}
+
+function buscarProductos(marca, detalle, minimo = 0.55) {
+  const mN = normalizar(marca), consulta = marca + " " + detalle, out = [];
+  for (const [id, p] of S.productos) {
+    if (similitud(mN, p.marca) < 0.8 && !normalizar(p.marca).includes(mN)) continue;
+    const s = similitud(consulta, p.marca + " " + p.detalle);
+    if (s >= minimo) out.push({ id, p, s });
+  }
+  return out.sort((x, y) => y.s - x.s);
+}
+
+function analizar(marca, detalle, precio) {
+  const hoy = hoyISO();
+  const r = { marca, detalle, precio, avisos: [], conclusiones: [], distribuidores: [] };
+  const cand = buscarProductos(marca, detalle);
+  if (!cand.length) {
+    r.avisos.push("No hay precios registrados para este producto. Cárgalos en «Cargar precios de distribuidores» y vuelve a analizar.");
+    return r;
+  }
+  r.id = cand[0].id; r.producto = cand[0].p;
+  if (cand[0].s < 0.85) r.avisos.push(`No hubo coincidencia exacta; se comparó con «${r.producto.marca} ${r.producto.detalle}». Verifica que sea el mismo producto.`);
+  const regs = [...r.producto.precios].sort((a, b) => a.f < b.f ? -1 : a.f > b.f ? 1 : 0);
+
+  // Distribuidores: último precio de cada uno dentro de la vigencia.
+  const limite = restarDias(hoy, AJ.dias), ultimo = new Map();
+  for (const x of regs) if (x.f >= limite && x.f <= hoy) ultimo.set(x.d, x);
+  r.distribuidores = [...ultimo.values()].map((x) => ({ nombre: x.d, precio: x.p, fecha: x.f, dif: pct(precio, x.p) })).sort((a, b) => a.precio - b.precio);
+  if (r.distribuidores.length) {
+    r.promDist = r2(media(r.distribuidores.map((d) => d.precio)));
+    r.difDist = pct(precio, r.promDist);
+  } else r.avisos.push(`Ningún distribuidor tiene precios de los últimos ${AJ.dias} días.`);
+
+  // Historial del último año.
+  const hist = regs.filter((x) => x.f >= restarDias(hoy, 365) && x.f <= hoy);
+  if (hist.length) {
+    const ps = hist.map((x) => x.p);
+    const baratos = ps.filter((p) => p < precio).length, iguales = ps.filter((p) => p === precio).length;
+    const rec = hist.filter((x) => x.f > limite).map((x) => x.p), ant = hist.filter((x) => x.f <= limite).map((x) => x.p);
+    r.hist = {
+      n: hist.length, desde: hist[0].f, hasta: hist[hist.length - 1].f,
+      prom: r2(media(ps)), med: r2(mediana(ps)), min: Math.min(...ps), max: Math.max(...ps),
+      percentil: Math.round((baratos + iguales / 2) / ps.length * 1000) / 10,
+      tendencia: rec.length && ant.length ? pct(media(rec), media(ant)) : null,
+      serie: hist,
+    };
+    r.difHist = pct(precio, r.hist.prom);
+  } else r.avisos.push("Sin historial de precios en el último año.");
+
+  // Referencia y clasificación.
+  const w = AJ.peso / 100;
+  if (r.promDist != null && r.hist) r.ref = r2(w * r.promDist + (1 - w) * r.hist.prom);
+  else if (r.promDist != null) r.ref = r.promDist;
+  else if (r.hist) r.ref = r.hist.prom;
+  else return r;
+  r.dif = pct(precio, r.ref);
+  r.clase = clasificar(r.dif);
+  const nd = r.distribuidores.length, nh = r.hist ? r.hist.n : 0;
+  r.confianza = nd >= 3 && nh >= 10 ? "alta" : nd >= 2 || nh >= 5 ? "media" : "baja";
+
+  const c = r.conclusiones;
+  c.push(`El precio está ${pctTxt(Math.abs(r.dif), false)} ${r.dif < 0 ? "por debajo" : "por encima"} del precio de referencia (${dinero(r.ref)}).`);
+  if (nd) {
+    const mb = r.distribuidores[0];
+    if (precio <= mb.precio) c.push(`Es igual o más bajo que en todos los distribuidores (el más barato, ${mb.nombre}, lo vende a ${dinero(mb.precio)}).`);
+    else c.push(`${r.distribuidores.filter((d) => d.precio > precio).length} de ${nd} distribuidores lo venden más caro. El más barato es ${mb.nombre} a ${dinero(mb.precio)}.`);
+  }
+  const h = r.hist;
+  if (h) {
+    if (precio < h.min) c.push(`Es más bajo que el mínimo histórico (${dinero(h.min)}).`);
+    else if (precio > h.max) c.push(`Supera el máximo histórico (${dinero(h.max)}).`);
+    else c.push(`El ${Math.round(h.percentil)} % de los precios del historial fue más barato que este (rango ${dinero(h.min)} – ${dinero(h.max)}).`);
+    if (h.tendencia != null && Math.abs(h.tendencia) >= 3) c.push(`El precio del producto viene ${h.tendencia > 0 ? "subiendo" : "bajando"} (${pctTxt(h.tendencia)} en el último mes).`);
+  }
+  return r;
+}
+
+// ───────────────────────────────── render ─────────────────────────────────
+function renderResultado() {
+  const cont = $("#resultado");
+  if (!S.ultimo) return;
+  const { marca, detalle, precio } = S.ultimo;
+  const r = analizar(marca, detalle, precio);
+  const avisos = r.avisos.map((a) => `<div class="warn">⚠ ${esc(a)}</div>`).join("");
+  if (!r.clase) {
+    cont.innerHTML = `<div class="eyebrow">Resultado</div><h2>No se pudo analizar ${esc(marca)} ${esc(detalle)}</h2>${avisos}`;
+    return;
+  }
+  // Escala de −30 % a +30 % con los umbrales en su posición real.
+  const LO = -30, HI = 30, pos = (v) => (Math.max(LO, Math.min(HI, v)) - LO) / (HI - LO) * 100;
+  const cortes = [LO, AJ.mb, AJ.b, AJ.c, HI].map((v) => Math.max(LO, Math.min(HI, v)));
+  const colores = ["var(--mb)", "var(--b)", "var(--pr)", "var(--c)"];
+  const tramos = colores.map((col, i) => `<i style="width:${pos(cortes[i + 1]) - pos(cortes[i])}%;background:${col}"></i>`).join("");
+  const nombres = ["Muy barato", "Barato", "Promedio", "Caro"].map((n, i) => `<span style="width:${pos(cortes[i + 1]) - pos(cortes[i])}%">${n}</span>`).join("");
+  const etiquetas = cortes.map((v) => `<span style="left:${pos(v)}%">${v > 0 ? "+" : ""}${String(v).replace(".", ",")}%</span>`).join("");
+  const h = r.hist;
+  const tend = h && h.tendencia != null ? `<b class="${h.tendencia > 0 ? "up" : "down"}">${pctTxt(h.tendencia)}</b>` : "<b>—</b>";
+
+  let html = `<div class="eyebrow">Resultado · ${esc(r.producto.marca)} ${esc(r.producto.detalle)}</div>
+  <div class="verdict result-in">
+    <span class="tag ${r.clase.k}">${esc(r.clase.nombre)}</span>
+    <div class="verdict-txt"><b>${dinero(precio)}</b><span>${pctTxt(r.dif)} frente a la referencia de ${dinero(r.ref)} · confianza ${r.confianza}</span></div>
+  </div>
+  <div class="scale" aria-hidden="true">
+    <div class="scale-names">${nombres}</div>
+    <div class="bar">${tramos}<span class="pin" style="left:${pos(r.dif)}%"></span></div>
+    <div class="scale-lbl">${etiquetas}</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><small>Promedio distribuidores</small><b>${dinero(r.promDist)}</b><small>tu precio ${pctTxt(r.difDist)}</small></div>
+    <div class="stat"><small>Promedio histórico</small><b>${dinero(h && h.prom)}</b><small>tu precio ${pctTxt(r.difHist)}</small></div>
+    <div class="stat"><small>Mínimo histórico</small><b>${dinero(h && h.min)}</b><small>máximo ${dinero(h && h.max)}</small></div>
+    <div class="stat"><small>Tendencia último mes</small>${tend}<small>${h ? h.n + " registros en el año" : "sin historial"}</small></div>
+  </div>
+  <ul class="concl">${r.conclusiones.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>${avisos}`;
+
+  if (r.distribuidores.length) {
+    html += `<div class="tbl"><table><thead><tr><th>Distribuidor</th><th>Fecha</th><th class="r">Precio</th><th class="r">Tu precio vs. este</th></tr></thead><tbody>
+      ${r.distribuidores.map((d) => `<tr><td>${esc(d.nombre)}</td><td class="num">${d.fecha}</td><td class="r num">${dinero(d.precio)}</td><td class="r num ${d.dif > 0 ? "up" : d.dif < 0 ? "down" : ""}">${pctTxt(d.dif)}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  }
+  if (h && h.serie.length > 1) html += grafico(h.serie, precio);
+  cont.innerHTML = html;
+}
+
+function grafico(serie, precioUsuario) {
+  const sem = new Map();
+  for (const x of serie) {
+    const d = new Date(x.f + "T12:00:00"); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const k = d.toISOString().slice(0, 10), s = sem.get(k) || { suma: 0, n: 0, min: Infinity };
+    s.suma += x.p; s.n++; s.min = Math.min(s.min, x.p); sem.set(k, s);
+  }
+  const pts = [...sem.entries()].sort(([a], [b]) => a < b ? -1 : 1).map(([k, s]) => ({ k, prom: s.suma / s.n, min: s.min }));
+  if (pts.length < 2) return "";
+  const W = 720, H = 220, m = { l: 78, r: 14, t: 14, b: 26 };
+  const vals = pts.flatMap((p) => [p.prom, p.min]).concat(precioUsuario);
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08 || hi * 0.05; lo -= pad; hi += pad;
+  const x = (i) => m.l + i / (pts.length - 1) * (W - m.l - m.r), y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+  const linea = (f) => pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(f(p)).toFixed(1)}`).join("");
+  const area = linea((p) => p.prom) + `L${x(pts.length - 1).toFixed(1)},${H - m.b}L${m.l},${H - m.b}Z`;
+  const ticks = [0, 1, 2, 3, 4].map((i) => lo + i / 4 * (hi - lo));
+  const xl = [0, (pts.length - 1) >> 1, pts.length - 1], anc = ["start", "middle", "end"];
+  const u = pts[pts.length - 1];
+  return `<div class="eyebrow">Evolución semanal del precio</div>
+  <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Evolución semanal del precio del producto frente al precio ingresado">
+    ${ticks.map((v) => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${m.l - 8}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">${dinero(Math.round(v))}</text>`).join("")}
+    ${xl.map((i, j) => `<text x="${x(i).toFixed(1)}" y="${H - 7}" text-anchor="${anc[j]}">${pts[i].k}</text>`).join("")}
+    <path d="${area}" fill="var(--accent)" fill-opacity=".08"/>
+    <path d="${linea((p) => p.min)}" fill="none" stroke="var(--mb)" stroke-width="1.4" stroke-dasharray="4 3"/>
+    <path d="${linea((p) => p.prom)}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <circle cx="${x(pts.length - 1).toFixed(1)}" cy="${y(u.prom).toFixed(1)}" r="3.5" fill="var(--accent)"/>
+    <line x1="${m.l}" x2="${W - m.r}" y1="${y(precioUsuario).toFixed(1)}" y2="${y(precioUsuario).toFixed(1)}" stroke="var(--c)" stroke-width="1.5"/>
+  </svg>
+  <div class="legend"><span><i style="background:var(--accent)"></i>promedio semanal</span><span><i style="background:var(--mb)"></i>mínimo semanal</span><span><i style="background:var(--c)"></i>precio analizado</span></div>`;
+}
+
+function renderCatalogo() {
+  const filtro = normalizar($("#cat-filtro").value || "");
+  const lista = [...S.productos.entries()].sort(([, a], [, b]) => (a.marca + a.detalle).localeCompare(b.marca + b.detalle, "es"));
+  $("#cat-count").textContent = `${lista.length} producto${lista.length === 1 ? "" : "s"}`;
+  const vis = lista.filter(([, p]) => !filtro || normalizar(p.marca + " " + p.detalle).includes(filtro));
+  $("#cat-lista").innerHTML = vis.length ? vis.map(([id, p]) => {
+    const ult = [...p.precios].sort((a, b) => a.f < b.f ? 1 : -1)[0];
+    return `<button type="button" class="prod" data-id="${esc(id)}"><div><b>${esc(p.marca)}</b> ${esc(p.detalle)}<br><span>${p.precios.length} precios${p.demo ? " · ejemplo" : ""}</span></div><div class="num">${ult ? dinero(ult.p) : ""}</div></button>`;
+  }).join("") : `<p class="empty">${lista.length ? "Ningún producto coincide con el filtro." : "Todavía no hay productos. Carga el primer precio a la izquierda."}</p>`;
+
+  // Listas de autocompletado.
+  const opts = (xs) => [...new Set(xs)].sort((a, b) => a.localeCompare(b, "es")).map((v) => `<option value="${esc(v)}">`).join("");
+  $("#dl-marcas").innerHTML = opts(lista.map(([, p]) => p.marca));
+  $("#dl-detalles").innerHTML = opts(lista.map(([, p]) => p.detalle));
+  $("#dl-dist").innerHTML = opts(lista.flatMap(([, p]) => p.precios.map((x) => x.d)));
+  $("#banner-demo").hidden = !lista.some(([, p]) => p.demo);
+  renderDetalle();
+}
+
+function renderDetalle() {
+  const cont = $("#cat-detalle"), p = S.productos.get(S.seleccionado);
+  if (!p) { cont.innerHTML = ""; return; }
+  const regs = [...p.precios].map((x, i) => ({ ...x, i })).sort((a, b) => a.f < b.f ? 1 : -1);
+  cont.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <b>${esc(p.marca)} ${esc(p.detalle)}</b>
+      <span style="display:flex;gap:6px"><button type="button" class="ghost mini" id="d-usar">Analizar este</button><button type="button" class="ghost mini" id="d-cerrar">Cerrar</button></span></div>
+    <div class="tbl" style="max-height:320px;overflow:auto"><table><thead><tr><th>Fecha</th><th>Distribuidor</th><th class="r">Precio</th><th></th></tr></thead><tbody>
+    ${regs.map((x) => `<tr><td class="num">${x.f}</td><td>${esc(x.d)}</td><td class="r num">${dinero(x.p)}</td><td class="r">${S.puedeEscribir ? `<button type="button" class="danger mini" data-borrar="${x.i}" aria-label="Borrar precio de ${esc(x.d)} del ${x.f}">Borrar</button>` : ""}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+
+// ───────────────────────────── escritura en la base ─────────────────────────────
+async function guardarProducto(id, p) {
+  if (!S.db) throw new Error("La base de datos no está disponible en esta vista.");
+  try { await S.db.doc("productos/" + id).set(p); }
+  catch (e) {
+    if (e && e.code === "invalid_argument") { S.puedeEscribir = false; aplicarPermisos(); throw new Error("No tienes permiso para guardar datos en esta página."); }
+    if (e && e.code === "quota_exceeded") throw new Error("Se alcanzó el límite de productos guardados. Borra productos que ya no uses.");
+    throw new Error((e && e.message) || "No se pudo guardar.");
+  }
+}
+
+// Agrega varios registros agrupando por producto: una escritura por producto.
+async function agregarPrecios(filas) {
+  const porProducto = new Map();
+  for (const f of filas) {
+    const cand = buscarProductos(f.marca, f.detalle, 0.9);
+    const id = cand.length && cand[0].s >= 0.97 ? cand[0].id : idProducto(f.marca, f.detalle);
+    if (!porProducto.has(id)) {
+      const base = S.productos.get(id);
+      porProducto.set(id, base ? { ...base, precios: [...base.precios] } : { marca: f.marca.trim(), detalle: f.detalle.trim(), demo: false, precios: [] });
+    }
+    porProducto.get(id).precios.push({ d: f.distribuidor.trim(), p: f.precio, f: f.fecha, o: f.fuente || "manual" });
+  }
+  for (const [id, p] of porProducto) {
+    p.precios.sort((a, b) => a.f < b.f ? -1 : a.f > b.f ? 1 : 0);
+    await guardarProducto(id, p);
+    S.productos.set(id, p);
+  }
+  renderCatalogo(); renderResultado();
+  return porProducto.size;
+}
+
+function parseCSV(texto) {
+  const filas = []; let fila = [], campo = "", comillas = false;
+  texto = texto.replace(/^﻿/, "");
+  const sep = (texto.split("\n")[0].match(/;/g) || []).length > (texto.split("\n")[0].match(/,/g) || []).length ? ";" : ",";
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (comillas) { if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; } else if (c === '"') comillas = false; else campo += c; }
+    else if (c === '"') comillas = true;
+    else if (c === sep) { fila.push(campo); campo = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && texto[i + 1] === "\n") i++; fila.push(campo); filas.push(fila); fila = []; campo = ""; }
+    else campo += c;
+  }
+  if (campo || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas.filter((f) => f.some((x) => x.trim()));
+}
+
+function aplicarPermisos() {
+  document.querySelectorAll("#f-precio button, #f-csv button, #btn-borrar-demo").forEach((b) => { b.disabled = !S.puedeEscribir; });
+  $("#a-registrar").disabled = !S.puedeEscribir;
+  if (!S.puedeEscribir) $("#p-msg").textContent = "Solo lectura: puedes analizar precios, pero no guardar nuevos.";
+}
+
+// ───────────────────────────────── eventos ─────────────────────────────────
+$("#f-analizar").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("#a-msg"); msg.className = "msg"; msg.textContent = "";
+  const marca = $("#a-marca").value.trim(), detalle = $("#a-detalle").value.trim();
+  let precio;
+  try { precio = leerPrecio($("#a-precio").value); if (precio <= 0) throw new Error("El precio debe ser mayor que cero."); }
+  catch (err) { msg.className = "msg err"; msg.textContent = err.message; return; }
+  S.ultimo = { marca, detalle, precio };
+  renderResultado();
+  const dist = $("#a-registrar").value.trim();
+  if (dist) {
+    try {
+      const r = analizar(marca, detalle, precio);
+      const [m, d] = r.producto ? [r.producto.marca, r.producto.detalle] : [marca, detalle];
+      await agregarPrecios([{ marca: m, detalle: d, distribuidor: dist, precio, fecha: hoyISO() }]);
+      $("#a-registrar").value = "";
+      msg.className = "msg ok"; msg.textContent = `Precio guardado como ${dist}.`;
+    } catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
+  }
+});
+
+$("#f-precio").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("#p-msg"); msg.className = "msg"; msg.textContent = "Guardando…";
+  try {
+    const precio = leerPrecio($("#p-precio").value);
+    if (precio <= 0) throw new Error("El precio debe ser mayor que cero.");
+    const fila = { marca: $("#p-marca").value, detalle: $("#p-detalle").value, distribuidor: $("#p-dist").value, precio, fecha: $("#p-fecha").value || hoyISO() };
+    if (!fila.marca.trim() || !fila.detalle.trim() || !fila.distribuidor.trim()) throw new Error("Completa marca, detalle y distribuidor.");
+    await agregarPrecios([fila]);
+    msg.className = "msg ok"; msg.textContent = `Guardado: ${fila.distribuidor.trim()} a ${dinero(precio)}.`;
+    $("#p-dist").value = ""; $("#p-precio").value = ""; $("#p-dist").focus();
+  } catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
+});
+
+$("#f-csv").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("#c-msg"), file = $("#c-file").files[0];
+  msg.className = "msg";
+  if (!file) { msg.className = "msg err"; msg.textContent = "Elige un archivo CSV."; return; }
+  try {
+    const filas = parseCSV(await file.text());
+    const cab = filas.shift().map((h) => normalizar(h));
+    const col = (n) => cab.indexOf(n);
+    for (const n of ["marca", "detalle", "distribuidor", "precio"]) if (col(n) < 0) throw new Error(`Falta la columna «${n}» en la primera fila.`);
+    const datos = filas.map((f, i) => {
+      const g = (n) => col(n) >= 0 ? (f[col(n)] || "").trim() : "";
+      const fecha = g("fecha") || hoyISO();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error(`Fila ${i + 2}: la fecha «${fecha}» debe ir como AAAA-MM-DD.`);
+      if (!g("marca") || !g("detalle") || !g("distribuidor")) throw new Error(`Fila ${i + 2}: faltan marca, detalle o distribuidor.`);
+      let precio; try { precio = leerPrecio(g("precio")); } catch (err) { throw new Error(`Fila ${i + 2}: ${err.message}`); }
+      if (precio <= 0) throw new Error(`Fila ${i + 2}: el precio debe ser mayor que cero.`);
+      return { marca: g("marca"), detalle: g("detalle"), distribuidor: g("distribuidor"), precio, fecha, fuente: "csv" };
+    });
+    if (!datos.length) throw new Error("El archivo no tiene filas de datos.");
+    msg.textContent = "Importando…";
+    const n = await agregarPrecios(datos);
+    msg.className = "msg ok"; msg.textContent = `Importados ${datos.length} precios en ${n} producto${n === 1 ? "" : "s"}.`;
+    $("#c-file").value = "";
+  } catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
+});
+
+function elegirTab(csv) {
+  $("#tab-uno").setAttribute("aria-selected", String(!csv)); $("#tab-csv").setAttribute("aria-selected", String(csv));
+  $("#f-precio").hidden = csv; $("#f-csv").hidden = !csv;
+}
+$("#tab-uno").addEventListener("click", () => elegirTab(false));
+$("#tab-csv").addEventListener("click", () => elegirTab(true));
+
+$("#cat-filtro").addEventListener("input", renderCatalogo);
+$("#cat-lista").addEventListener("click", (e) => {
+  const b = e.target.closest(".prod"); if (!b) return;
+  S.seleccionado = b.dataset.id; renderDetalle();
+  const p = S.productos.get(S.seleccionado);
+  if (p) { $("#p-marca").value = p.marca; $("#p-detalle").value = p.detalle; }
+});
+$("#cat-detalle").addEventListener("click", async (e) => {
+  const p = S.productos.get(S.seleccionado);
+  if (e.target.id === "d-cerrar") { S.seleccionado = null; renderDetalle(); return; }
+  if (e.target.id === "d-usar" && p) {
+    $("#a-marca").value = p.marca; $("#a-detalle").value = p.detalle; $("#a-precio").focus();
+    $("#a-marca").scrollIntoView({ behavior: "smooth", block: "center" }); return;
+  }
+  const i = e.target.dataset && e.target.dataset.borrar;
+  if (i != null && p) {
+    const nuevo = { ...p, precios: p.precios.filter((_, j) => j !== Number(i)) };
+    try {
+      if (nuevo.precios.length) { await guardarProducto(S.seleccionado, nuevo); S.productos.set(S.seleccionado, nuevo); }
+      else { await S.db.doc("productos/" + S.seleccionado).delete(); S.productos.delete(S.seleccionado); S.seleccionado = null; }
+      renderCatalogo(); renderResultado();
+    } catch (err) { $("#cat-detalle").insertAdjacentHTML("afterbegin", `<div class="msg err">${esc(err.message)}</div>`); }
+  }
+});
+
+let confirmarDemo = false;
+$("#btn-borrar-demo").addEventListener("click", async (e) => {
+  const b = e.currentTarget;
+  if (!confirmarDemo) { confirmarDemo = true; b.textContent = "Confirmar: borrar ejemplos"; setTimeout(() => { confirmarDemo = false; b.textContent = "Borrar ejemplos"; }, 5000); return; }
+  b.disabled = true; b.textContent = "Borrando…";
+  try {
+    for (const [id, p] of [...S.productos]) if (p.demo) { await S.db.doc("productos/" + id).delete(); S.productos.delete(id); }
+    S.ultimo = null; $("#resultado").innerHTML = `<div class="eyebrow">Resultado</div><p class="empty">Ejemplos borrados. Carga tus propios precios para empezar.</p>`;
+    renderCatalogo();
+  } catch (err) { b.textContent = "No se pudo borrar"; }
+  b.disabled = false; confirmarDemo = false;
+});
+
+$("#f-ajustes").addEventListener("input", () => {
+  const n = { mb: +$("#u-mb").value, b: +$("#u-b").value, c: +$("#u-c").value, dias: Math.max(1, +$("#u-dias").value || 30), peso: Math.min(100, Math.max(0, +$("#u-peso").value)) };
+  const msg = $("#u-msg");
+  if (!(n.mb < n.b && n.b < 0 && 0 < n.c)) { msg.className = "msg err"; msg.textContent = "Los umbrales deben cumplir: muy barato < barato < 0 < caro."; return; }
+  msg.className = "msg"; msg.textContent = "";
+  AJ = n; try { localStorage.setItem("pj-ajustes", JSON.stringify(n)); } catch (_) {}
+  renderResultado();
+});
+
+// ───────────────────────────────── arranque ─────────────────────────────────
+function iniciar() {
+  $("#u-mb").value = AJ.mb; $("#u-b").value = AJ.b; $("#u-c").value = AJ.c; $("#u-dias").value = AJ.dias; $("#u-peso").value = AJ.peso;
+  $("#p-fecha").value = hoyISO();
+}
+iniciar();
+
+(async () => {
+  const estado = $("#estado");
+  let db = null;
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (_) {}
+  if (!db) {
+    estado.textContent = "Sin conexión a la base de datos";
+    $("#cat-lista").innerHTML = `<p class="empty">Esta vista no puede leer la base de datos de precios. Abre la página desde claude.ai con tu cuenta.</p>`;
+    S.puedeEscribir = false; aplicarPermisos(); return;
+  }
+  S.db = db;
+  try {
+    const user = window.claude.use ? await window.claude.use("user") : null;
+    const ok = user && user.can ? await user.can("data.write") : null;
+    if (ok === false) { S.puedeEscribir = false; aplicarPermisos(); }
+  } catch (_) {}
+
+  let primera = true;
+  db.collection("productos").onSnapshot((snap) => {
+    S.productos = new Map(snap.docs.filter((d) => d.exists).map((d) => {
+      const x = d.data();
+      return [d.id, { marca: x.marca, detalle: x.detalle, demo: !!x.demo, precios: Array.isArray(x.precios) ? x.precios : [] }];
+    }));
+    estado.textContent = "Datos guardados en la nube";
+    renderCatalogo();
+    if (primera && !snap.metadata.fromCache) {
+      primera = false;
+      // Abre con un ejemplo ya analizado si están los datos de muestra.
+      const demo = [...S.productos.values()].find((p) => p.demo && /galaxy s24/i.test(p.detalle));
+      if (!S.ultimo && demo) {
+        $("#a-marca").value = demo.marca; $("#a-detalle").value = demo.detalle; $("#a-precio").value = "799.990";
+        S.ultimo = { marca: demo.marca, detalle: demo.detalle, precio: 799990 };
+      }
+    }
+    renderResultado();
+  }, () => { estado.textContent = "Se perdió la conexión con la base de datos"; });
+})();
+</script>

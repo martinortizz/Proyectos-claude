@@ -13,6 +13,12 @@ producto, y lo clasifica como:
 
 Solo usa la biblioteca estándar de Python (3.10 o superior). No hace falta instalar nada.
 
+## Versión web en línea
+
+La carpeta `artifact/` tiene una versión de la aplicación que funciona en el navegador y está
+publicada en claude.ai: https://claude.ai/artifact/3Ws7PteqZbqM3KavUjBCf5 . Guarda los precios en
+una base de datos en la nube y aplica el mismo análisis que la versión en Python.
+
 ## Uso rápido
 
 ```bash
