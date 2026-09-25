@@ -342,7 +342,7 @@ function analizar(marca, detalle, precio) {
   const r = { marca, detalle, precio, avisos: [], conclusiones: [], distribuidores: [] };
   const cand = buscarProductos(marca, detalle);
   if (!cand.length) {
-    r.avisos.push("No hay precios registrados para este producto. Cárgalos en «Cargar precios de distribuidores» y vuelve a analizar.");
+    r.avisos.push("Este producto todavía no está en el catálogo, así que no hay precios con qué compararlo.");
     return r;
   }
   r.id = cand[0].id; r.producto = cand[0].p;
@@ -410,7 +410,10 @@ function renderResultado() {
   const r = analizar(marca, detalle, precio);
   const avisos = r.avisos.map((a) => `<div class="warn">⚠ ${esc(a)}</div>`).join("");
   if (!r.clase) {
-    cont.innerHTML = `<div class="eyebrow">Resultado</div><h2>No se pudo analizar ${esc(marca)} ${esc(detalle)}</h2>${avisos}`;
+    const seguir = !r.producto && S.puedeEscribir && S.db
+      ? `<div style="display:grid;gap:8px;justify-items:start"><p style="margin:0">Agrégalo al catálogo y desde esta noche a las 23:59 se buscará su precio en las seis tiendas. Mañana podrás analizarlo.</p><button type="button" id="btn-seguir">Seguir el precio de este producto</button><div id="seguir-msg" class="msg" role="status"></div></div>`
+      : "";
+    cont.innerHTML = `<div class="eyebrow">Resultado</div><h2>No se pudo analizar ${esc(marca)} ${esc(detalle)}</h2>${avisos}${seguir}`;
     return;
   }
   // Escala de −30 % a +30 % con los umbrales en su posición real.
@@ -488,7 +491,7 @@ function renderCatalogo() {
   const vis = lista.filter(([, p]) => !filtro || normalizar(p.marca + " " + p.detalle).includes(filtro));
   $("#cat-lista").innerHTML = vis.length ? vis.map(([id, p]) => {
     const ult = [...p.precios].sort((a, b) => a.f < b.f ? 1 : -1)[0];
-    return `<button type="button" class="prod" data-id="${esc(id)}"><div><b>${esc(p.marca)}</b> ${esc(p.detalle)}<br><span>${p.precios.length} precios${p.demo ? " · ejemplo" : ""}</span></div><div class="num">${ult ? dinero(ult.p) : ""}</div></button>`;
+    return `<button type="button" class="prod" data-id="${esc(id)}"><div><b>${esc(p.marca)}</b> ${esc(p.detalle)}<br><span>${p.precios.length ? p.precios.length + " precios" : "Sin precios aún · se buscará esta noche"}${p.demo ? " · ejemplo" : ""}</span></div><div class="num">${ult ? dinero(ult.p) : ""}</div></button>`;
   }).join("") : `<p class="empty">${lista.length ? "Ningún producto coincide con el filtro." : "Todavía no hay productos. Carga el primer precio a la izquierda."}</p>`;
 
   // Listas de autocompletado.
@@ -681,6 +684,19 @@ $("#cat-detalle").addEventListener("click", async (e) => {
       renderCatalogo(); renderResultado();
     } catch (err) { $("#cat-detalle").insertAdjacentHTML("afterbegin", `<div class="msg err">${esc(err.message)}</div>`); }
   }
+});
+
+$("#resultado").addEventListener("click", async (e) => {
+  if (e.target.id !== "btn-seguir" || !S.ultimo) return;
+  const b = e.target, msg = $("#seguir-msg");
+  b.disabled = true;
+  const { marca, detalle } = S.ultimo, id = idProducto(marca, detalle);
+  const doc = { marca, detalle, demo: false, precios: [] };
+  try {
+    await guardarProducto(id, doc);
+    S.productos.set(id, doc); renderCatalogo();
+    msg.className = "msg ok"; msg.textContent = "Agregado. La búsqueda automática lo incluirá desde esta noche.";
+  } catch (err) { msg.className = "msg err"; msg.textContent = err.message; b.disabled = false; }
 });
 
 let confirmarDemo = false;
